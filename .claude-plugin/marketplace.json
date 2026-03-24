@@ -5,14 +5,27 @@
     "email": "giolynx104@gmail.com"
   },
   "metadata": {
-    "description": "Opinionated developer workflow skills for Claude Code"
+    "description": "Opinionated developer workflow skills for Claude Code",
+    "version": "1.0.0"
   },
   "plugins": [
     {
       "name": "alexajuno",
-      "source": ".",
-      "description": "Git workflow, PR management, frontend engineering, and more",
-      "version": "1.0.0"
+      "description": "Git workflow, PR management, frontend engineering, schema auditing, and more",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/git-workflow",
+        "./skills/update-pr",
+        "./skills/github-release",
+        "./skills/schema-audit",
+        "./skills/doctl",
+        "./skills/ui-engineering",
+        "./skills/playwright-hygiene",
+        "./skills/web-pdf-reader",
+        "./skills/vibe-learning",
+        "./skills/lyrics"
+      ]
     }
   ]
 }
