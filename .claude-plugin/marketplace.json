@@ -13,7 +13,7 @@
       "name": "alexajuno",
       "description": "Git workflow, PR management, frontend engineering, schema auditing, and more",
       "source": "./",
-      "strict": false,
+      "strict": true,
       "skills": [
         "./skills/git-workflow",
         "./skills/update-pr",
