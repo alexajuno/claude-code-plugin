@@ -1,12 +1,21 @@
-# alexajuno
+# Claude Code Plugin
 
 Opinionated developer workflow skills for Claude Code.
 
 ## Install
 
+```bash
+# Add the marketplace
+/plugin marketplace add alexajuno/claude-code-plugin
+
+# Install the plugin
+/plugin install alexajuno@alexajuno
+
+# Reload to activate
+/reload-plugins
 ```
-claude plugin add github:alexajuno/claude-code-plugin
-```
+
+> **Note:** Requires restarting the Claude Code session for skills to fully load. Skills appear namespaced as `alexajuno:<skill-name>`.
 
 ## Skills
 
