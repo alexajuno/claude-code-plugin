@@ -1,0 +1,19 @@
+{
+  "name": "alexajuno",
+  "version": "1.0.0",
+  "description": "Opinionated developer workflow skills — git conventions, PR management, frontend engineering, and more.",
+  "author": {
+    "name": "alexajuno",
+    "url": "https://github.com/alexajuno"
+  },
+  "repository": "https://github.com/alexajuno/claude-code-plugin",
+  "license": "MIT",
+  "keywords": [
+    "git",
+    "workflow",
+    "pr",
+    "frontend",
+    "laravel",
+    "digitalocean"
+  ]
+}
