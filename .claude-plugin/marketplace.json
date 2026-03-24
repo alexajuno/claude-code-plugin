@@ -1,0 +1,18 @@
+{
+  "name": "alexajuno",
+  "owner": {
+    "name": "alexajuno",
+    "email": "giolynx104@gmail.com"
+  },
+  "metadata": {
+    "description": "Opinionated developer workflow skills for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "alexajuno",
+      "source": ".",
+      "description": "Git workflow, PR management, frontend engineering, and more",
+      "version": "1.0.0"
+    }
+  ]
+}
