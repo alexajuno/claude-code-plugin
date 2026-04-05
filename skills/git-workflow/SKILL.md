@@ -4,11 +4,9 @@ description: >
   MUST use for ALL engineering tasks that involve code changes — any coding session,
   feature implementation, bug fix, refactor, or technical work that will result in
   commits or PRs. Also triggers on explicit git operations: commits, pushes, PR
-  creation, PR updates (title/body/comments/review replies), branch cleanup, or
-  slash commands /commit, /pr, /commit-push-pr, /clean-gone. Key overrides: no
-  Co-Authored-By, no "Generated with Claude Code", Meta-style Test Plan section
-  in PRs, Related PRs section with proper links. Uses REST API for PR updates to
-  avoid GraphQL deprecation errors.
+  creation, branch cleanup, or slash commands /commit, /pr, /commit-push-pr,
+  /clean-gone. Key overrides: no Co-Authored-By, no "Generated with Claude Code",
+  Meta-style Test Plan section in PRs, Related PRs section with proper links.
 ---
 
 # Git Workflow
@@ -19,6 +17,7 @@ description: >
 2. Stage relevant files (prefer specific files over `git add -A`)
 3. Create a single commit with a concise message focused on the "why"
 4. Execute all steps in a single message with parallel tool calls where possible
+5. After a commit being pushed to a PR, fetch Gihub PR summary and align the content with the changes made by the commit. Take into account that we don't want to add new content because the change might be just local to the PR. We only add/update stuff related to the diff between targeted branch and the current branch, not changes inside current branch for the PR summary
 
 ## Commit, Push & Create PR
 
@@ -30,33 +29,63 @@ description: >
 
 ### PR Body Format
 
-Use this format — no branding, no attribution:
+Adapt the structure to the type of change. The first section sets the tone — pick the right one:
+
+**For bug fixes and small changes** — use "Motivation" (what's broken, why it needs fixing):
 
 ```
 gh pr create --title "<short title>" --assignee @me --body "$(cat <<'EOF'
 ## Motivation
-<why this change is needed — what problem it solves or what goal it serves>
+<what's broken or missing on the base branch, and why it matters>
 
 ## Summary
 <concise bullet points describing the changes>
 
 ## Test Plan
-<how the changes were verified — commands run, manual steps taken, edge cases checked>
+<how the changes were verified>
 EOF
 )"
 ```
 
-If the user explicitly mentions a linked issue, replace the Motivation section with an issue reference:
+**For features and large additions** — use "Context" (what this feature is, why it exists, where it fits):
+
+```
+gh pr create --title "<short title>" --assignee @me --body "$(cat <<'EOF'
+## Context
+<what this feature is, why the platform needs it, and how it fits into the bigger picture>
+
+## Changes
+<concise bullet points describing what was added/modified>
+
+## Key Design Decisions
+<non-obvious choices and their rationale — helps reviewers understand trade-offs>
+
+## Test Plan
+<how the changes were verified>
+EOF
+)"
+```
+
+For feature PRs with a design doc, include it as a collapsible `<details>` section at the end of the body.
+
+**For linked issues** — replace the first section with an issue reference:
 
 ```
 Closes #<issue-number>
 
-## Summary
+## Summary / Changes
 ...
 
 ## Test Plan
 ...
 ```
+
+### Writing the First Section
+
+**Always write from the perspective of base branch → this branch.** Describe what's wrong or missing on the base branch (master/main), and what this PR changes. Never describe the internal evolution within the PR branch itself.
+
+Good: "The Dockerfile is missing bash, which breaks sail shell. This PR adds it."
+Bad: "We first added bash and git, then realized git was unnecessary, so we removed it."
 
 ### Test Plan Guidelines (Meta style)
 
@@ -105,75 +134,20 @@ git branch -v | grep '\[gone\]' | sed 's/^[+* ]//' | awk '{print $1}' | while re
 done
 ```
 
-## Update PR
+## Update PR (title, body, comments)
 
-Use `gh api` REST endpoint instead of `gh pr edit` to avoid GraphQL deprecation errors (`gh pr edit --body` / `--title` may fail with "Projects (classic) is being deprecated...").
+See `references/update-pr.md` for full patterns. Key point: use `gh api` REST endpoints, not `gh pr edit` (GraphQL deprecation errors).
 
-### Update Title / Body
+## PR Review Comments (fetch & post inline)
 
-```bash
-PR_NUM=$(gh pr view --json number -q '.number')
-REPO=$(gh repo view --json owner,name -q '"\(.owner.login)/\(.name)"')
-
-# Update title
-gh api repos/$REPO/pulls/$PR_NUM -X PATCH -f title="New Title"
-
-# Update body (multi-line via file)
-cat > /tmp/pr_body.txt << 'EOF'
-## Motivation
-...
-
-## Summary
-...
-
-## Test Plan
-...
-EOF
-
-gh api repos/$REPO/pulls/$PR_NUM -X PATCH -F "body=@/tmp/pr_body.txt"
-
-# Update both at once
-gh api repos/$REPO/pulls/$PR_NUM -X PATCH \
-  -f title="New Title" \
-  -F "body=@/tmp/pr_body.txt"
-```
-
-### Add PR Comment
-
-```bash
-gh pr comment $PR_NUM --body "$(cat <<'EOF'
-## Review changes applied
-
-Per @reviewer's review:
-- Change 1
-- Change 2
-EOF
-)"
-```
-
-### Reply to Review Comments
-
-```bash
-# List review comments (get IDs)
-gh api /repos/$REPO/pulls/$PR_NUM/comments \
-  --jq '.[] | {id, path, line: (.original_line // .line), body: .body}'
-
-# Reply to a specific review comment
-gh api /repos/$REPO/pulls/$PR_NUM/comments/{comment_id}/replies \
-  -f body="Reply text"
-```
-
-### PR Update Guidelines
-
-- **Body**: Current design/state — update when design changes, keep it clean
-- **Comment**: Changelog entries — what changed and why (e.g., "Review changes applied")
-- **Review reply**: Direct responses to inline code review comments
+See `references/pr-comments.md` for full patterns. Key points:
+- Get repo with `gh repo view --json nameWithOwner` (not `gh pr view --json headRepository` — can return empty)
+- Post inline comments via reviews API with `--input -` piped JSON (not `--field` — breaks JSON arrays)
+- `line` must be a file-level line number within the diff hunk
 
 ## Rules
 
-- Never add Co-Authored-By or AI attribution to commits
-- Never add "Generated with Claude Code" or similar to PR descriptions
-- Always include a "Motivation" section in PRs explaining why the change is needed. If the user explicitly mentions a linked issue, replace Motivation with an issue reference (`Closes #N`) instead.
+- PRs must open with context: "Motivation" for fixes/small changes, "Context" for features. If the user explicitly mentions a linked issue, replace with an issue reference (`Closes #N`) instead.
 - Always include a "Test Plan" section in PRs (Meta style — concrete, reproducible verification steps)
 - Commit message format:
   ```
