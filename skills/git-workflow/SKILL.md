@@ -4,9 +4,11 @@ description: >
   MUST use for ALL engineering tasks that involve code changes — any coding session,
   feature implementation, bug fix, refactor, or technical work that will result in
   commits or PRs. Also triggers on explicit git operations: commits, pushes, PR
-  creation, branch cleanup, or slash commands /commit, /pr, /commit-push-pr,
-  /clean-gone. Key overrides: no Co-Authored-By, no "Generated with Claude Code",
-  Meta-style Test Plan section in PRs, Related PRs section with proper links.
+  creation, PR updates (title/body/comments/review replies), branch cleanup, or
+  slash commands /commit, /pr, /commit-push-pr, /clean-gone. Key overrides: no
+  Co-Authored-By, no "Generated with Claude Code", Meta-style Test Plan section
+  in PRs, Related PRs section with proper links. Uses REST API for PR updates to
+  avoid GraphQL deprecation errors.
 ---
 
 # Git Workflow
@@ -102,6 +104,70 @@ git branch -v | grep '\[gone\]' | sed 's/^[+* ]//' | awk '{print $1}' | while re
   git branch -D "$branch"
 done
 ```
+
+## Update PR
+
+Use `gh api` REST endpoint instead of `gh pr edit` to avoid GraphQL deprecation errors (`gh pr edit --body` / `--title` may fail with "Projects (classic) is being deprecated...").
+
+### Update Title / Body
+
+```bash
+PR_NUM=$(gh pr view --json number -q '.number')
+REPO=$(gh repo view --json owner,name -q '"\(.owner.login)/\(.name)"')
+
+# Update title
+gh api repos/$REPO/pulls/$PR_NUM -X PATCH -f title="New Title"
+
+# Update body (multi-line via file)
+cat > /tmp/pr_body.txt << 'EOF'
+## Motivation
+...
+
+## Summary
+...
+
+## Test Plan
+...
+EOF
+
+gh api repos/$REPO/pulls/$PR_NUM -X PATCH -F "body=@/tmp/pr_body.txt"
+
+# Update both at once
+gh api repos/$REPO/pulls/$PR_NUM -X PATCH \
+  -f title="New Title" \
+  -F "body=@/tmp/pr_body.txt"
+```
+
+### Add PR Comment
+
+```bash
+gh pr comment $PR_NUM --body "$(cat <<'EOF'
+## Review changes applied
+
+Per @reviewer's review:
+- Change 1
+- Change 2
+EOF
+)"
+```
+
+### Reply to Review Comments
+
+```bash
+# List review comments (get IDs)
+gh api /repos/$REPO/pulls/$PR_NUM/comments \
+  --jq '.[] | {id, path, line: (.original_line // .line), body: .body}'
+
+# Reply to a specific review comment
+gh api /repos/$REPO/pulls/$PR_NUM/comments/{comment_id}/replies \
+  -f body="Reply text"
+```
+
+### PR Update Guidelines
+
+- **Body**: Current design/state — update when design changes, keep it clean
+- **Comment**: Changelog entries — what changed and why (e.g., "Review changes applied")
+- **Review reply**: Direct responses to inline code review comments
 
 ## Rules
 
